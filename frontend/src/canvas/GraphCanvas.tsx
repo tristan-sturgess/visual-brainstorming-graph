@@ -6,12 +6,11 @@
 // (we do not wire onNodesChange); we only persist position on drag end and
 // react to selection/deletion through their dedicated callbacks. This keeps
 // dragging smooth while the server remains the source of truth for layout.
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, type DragEvent } from "react";
 import {
   Background,
   BackgroundVariant,
   Controls,
-  MiniMap,
   ReactFlow,
   type Connection,
   type Edge as RFEdge,
@@ -31,6 +30,7 @@ import {
   usePatchConcept,
   usePatchImage,
   useRemoveConceptParent,
+  useUploadImage,
 } from "../api/queries";
 import { useEditorStore } from "../store";
 import type { Graph } from "../api/types";
@@ -60,6 +60,7 @@ export function GraphCanvas({
   const patchConcept = usePatchConcept();
   const patchImage = usePatchImage();
   const deleteConcept = useDeleteConcept();
+  const uploadImage = useUploadImage();
 
   const nodes = useMemo<FlowNode[]>(() => {
     const conceptNodes: ConceptFlowNode[] = graph.concepts.map((concept) => ({
@@ -115,7 +116,7 @@ export function GraphCanvas({
       if (!connectionState.fromNode) return;
 
       const target = event.target as HTMLElement | null;
-      const droppedOnPane = !!target?.closest?.(".react-flow__pane");
+      const droppedOnPane = !!target?.classList?.contains("react-flow__pane");
       if (!droppedOnPane) return;
 
       const point =
@@ -177,29 +178,54 @@ export function GraphCanvas({
     [deleteConcept, showToast],
   );
 
-  // Extension point: dropping an image file onto the canvas (next slice)
-  // wires onDragOver/onDrop here, converts the drop point with
-  // screenToFlowPosition, and calls useUploadImage() (already implemented
-  // in src/api/queries.ts) to create the uploaded image node.
+  const onDragOver = useCallback((event: DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  }, []);
+
+  const onDrop = useCallback(
+    (event: DragEvent) => {
+      event.preventDefault();
+      const files = Array.from(event.dataTransfer.files).filter((file) =>
+        file.type.startsWith("image/"),
+      );
+      if (files.length === 0) return;
+
+      const flowPos = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+      files.forEach((file, index) => {
+        uploadImage.mutate(
+          { file, position: { x: flowPos.x + index * 24, y: flowPos.y + index * 24 } },
+          {
+            onSuccess: (image) => selectNode({ type: "image", id: image.id }),
+            onError: (err) => showToast(err.message),
+          },
+        );
+      });
+    },
+    [screenToFlowPosition, uploadImage, selectNode, showToast],
+  );
+
   return (
-    <ReactFlow
-      nodes={nodes}
-      edges={edges}
-      nodeTypes={nodeTypes}
-      onConnect={onConnect}
-      onConnectEnd={onConnectEnd}
-      onNodeDragStop={onNodeDragStop}
-      onNodeClick={onNodeClick}
-      onPaneClick={onPaneClick}
-      onEdgesDelete={onEdgesDelete}
-      onNodesDelete={onNodesDelete}
-      deleteKeyCode={["Backspace", "Delete"]}
-      fitView
-      minZoom={0.2}
-    >
-      <Background variant={BackgroundVariant.Dots} gap={18} size={1} />
-      <MiniMap pannable zoomable className="!bg-white" />
-      <Controls />
-    </ReactFlow>
+    <div className="h-full w-full" onDragOver={onDragOver} onDrop={onDrop}>
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        nodeTypes={nodeTypes}
+        onConnect={onConnect}
+        onConnectEnd={onConnectEnd}
+        onNodeDragStop={onNodeDragStop}
+        onNodeClick={onNodeClick}
+        onPaneClick={onPaneClick}
+        onEdgesDelete={onEdgesDelete}
+        onNodesDelete={onNodesDelete}
+        deleteKeyCode={["Backspace", "Delete"]}
+        colorMode="light"
+        fitView
+        minZoom={0.2}
+      >
+        <Background variant={BackgroundVariant.Dots} gap={18} size={1} bgColor="#f8fafc" color="#cbd5e1" />
+        <Controls />
+      </ReactFlow>
+    </div>
   );
 }

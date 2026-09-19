@@ -12,6 +12,24 @@ Instead of a linear prompt history, ideas live on an interactive graph:
 
 > Local-only proof of concept. One user, one machine, one graph. No auth, billing, or hosting.
 
+## Running it
+
+Prerequisites: Python 3.12+, Poetry, Node 22+.
+
+```bash
+cp .env.example .env    # then fill in OPENROUTER_API_KEY and OPENAI_API_KEY, or leave MOCK_AI=true
+```
+
+```bash
+cd backend && poetry install && poetry run uvicorn app.main:app --port 8000
+```
+
+```bash
+cd frontend && npm install && npm run dev
+```
+
+Open http://localhost:5173. The SQLite database and generated images live under `data/`; delete that folder to start from an empty canvas. With `MOCK_AI=true` the app runs fully offline with placeholder images.
+
 ## Docs
 
 - [Concept](docs/concept.md): product concept, workflow, scope, and the demo script

@@ -1,15 +1,15 @@
 // Editor state that does not belong on the server: current selection, the
-// in-flight generation per concept (drives polling), and chat composer state.
-//
-// Extension point: `attachedImageIds` is keyed by concept id so the next
-// slice (drag an image node into the chat composer) can push ids into it by
-// drag-and-drop without touching anything else in this store.
+// in-flight generation per concept (drives polling), chat composer state,
+// and which image node (if any) is in regional-annotation drawing mode.
 import { create } from "zustand";
+import type { Annotation } from "./api/types";
 
 type SelectedNode =
   | { type: "concept"; id: string }
   | { type: "image"; id: string }
   | null;
+
+type AnnotationMode = { imageId: string; kind: Annotation["kind"] } | null;
 
 type EditorState = {
   selectedNode: SelectedNode;
@@ -20,9 +20,15 @@ type EditorState = {
   setRunningGeneration: (conceptId: string, generationId: string | null) => void;
 
   // conceptId -> image node ids attached to the next chat message for that
-  // concept's composer. Populated by drag-and-drop in the next slice.
+  // concept's composer. Populated by drag-and-drop from ImageNode.
   attachedImageIds: Record<string, string[]>;
   setAttachedImageIds: (conceptId: string, ids: string[]) => void;
+
+  // Which image node is currently being annotated, and with which kind.
+  // Set by the hover toolbar on an image node; cleared by Escape or by
+  // clicking the active toolbar button again.
+  annotationMode: AnnotationMode;
+  setAnnotationMode: (mode: AnnotationMode) => void;
 
   // A single ephemeral error/status message shown at the bottom of the
   // screen, e.g. for a rejected connection or a failed mutation.
@@ -52,6 +58,9 @@ export const useEditorStore = create<EditorState>((set) => ({
     set((state) => ({
       attachedImageIds: { ...state.attachedImageIds, [conceptId]: ids },
     })),
+
+  annotationMode: null,
+  setAnnotationMode: (mode) => set({ annotationMode: mode }),
 
   toast: null,
   showToast: (message) => set({ toast: message }),

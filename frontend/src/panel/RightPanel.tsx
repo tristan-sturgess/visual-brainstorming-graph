@@ -10,8 +10,11 @@ export function RightPanel({ graph }: { graph: Graph }) {
 
   if (!selectedNode) {
     return (
-      <div className="flex h-full items-center justify-center p-6 text-center text-sm text-gray-400">
-        Select a concept or image node to see its details here.
+      <div className="flex h-full flex-col items-center justify-center gap-1 p-6 text-center text-sm text-gray-400">
+        <p>Select a concept or image node to see its details here.</p>
+        <p className="text-xs">
+          Drag the + onto empty canvas to branch, or onto a concept to add it as a parent.
+        </p>
       </div>
     );
   }

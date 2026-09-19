@@ -54,7 +54,12 @@ export function ConceptNode({ data, id }: NodeProps<ConceptFlowNode>) {
         isDraft ? "border-l-amber-400" : "border-l-emerald-500"
       } ${isSelected ? "ring-2 ring-indigo-500" : ""}`}
     >
-      <Handle type="target" position={Position.Top} className="!bg-gray-400" />
+      <Handle
+        type="target"
+        position={Position.Top}
+        isConnectable
+        className="!left-0 !top-0 !h-4 !w-full !transform-none !rounded-none !border-0 !opacity-0"
+      />
 
       <div className="mb-1.5 flex items-center justify-between gap-2">
         <span
@@ -76,10 +81,10 @@ export function ConceptNode({ data, id }: NodeProps<ConceptFlowNode>) {
       <Button
         variant="primary"
         className="nodrag w-full"
-        disabled={!canGenerate || isRunning}
+        disabled={!canGenerate || isRunning || generateMutation.isPending}
         onClick={handleGenerate}
       >
-        {isRunning ? (
+        {isRunning || generateMutation.isPending ? (
           <>
             <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
             Generating...
@@ -91,7 +96,16 @@ export function ConceptNode({ data, id }: NodeProps<ConceptFlowNode>) {
         )}
       </Button>
 
-      <Handle type="source" position={Position.Bottom} className="!bg-gray-400" />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        title="Drag onto empty canvas to branch, or onto a concept to add it as a parent"
+        className="!h-6 !w-6 !cursor-crosshair !rounded-full !border-2 !border-white !bg-indigo-600 transition-transform hover:!scale-125 hover:!bg-indigo-700"
+      >
+        <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-bold leading-none text-white">
+          +
+        </span>
+      </Handle>
     </div>
   );
 }

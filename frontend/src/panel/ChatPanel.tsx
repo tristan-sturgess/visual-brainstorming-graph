@@ -1,12 +1,12 @@
 // Refinement chat for a draft concept. One LLM operation (refine) backs
 // this; see docs/concept.md "Refinement chat".
 //
-// Extension point: `attachedImageIds` (from the Zustand store, keyed by
-// concept id) is rendered as removable chips and sent with the next message.
-// The next slice will populate it by letting the user drag an image node
-// from the canvas onto this composer; nothing else here needs to change.
-import { useState } from "react";
-import { useChat, usePostChat } from "../api/queries";
+// `attachedImageIds` (from the Zustand store, keyed by concept id) is
+// rendered as removable thumbnail chips and sent with the next message.
+// Populated by dragging an image node (see ImageNode.tsx's "Drag to chat"
+// grip) onto the composer below.
+import { useState, type DragEvent } from "react";
+import { useChat, useGraph, usePostChat } from "../api/queries";
 import { useEditorStore } from "../store";
 import { Button, Textarea } from "../components/ui";
 
@@ -14,8 +14,11 @@ import { Button, Textarea } from "../components/ui";
 // nothing is attached; a fresh `[]` per render triggers an infinite re-render.
 const NO_ATTACHMENTS: string[] = [];
 
+const IMAGE_DRAG_TYPE = "application/x-vbg-image-id";
+
 export function ChatPanel({ conceptId }: { conceptId: string }) {
   const chatQuery = useChat(conceptId);
+  const graphQuery = useGraph();
   const postChat = usePostChat();
   const [draft, setDraft] = useState("");
 
@@ -24,6 +27,8 @@ export function ChatPanel({ conceptId }: { conceptId: string }) {
   );
   const setAttachedImageIds = useEditorStore((s) => s.setAttachedImageIds);
   const showToast = useEditorStore((s) => s.showToast);
+
+  const imageById = (id: string) => graphQuery.data?.images.find((img) => img.id === id);
 
   const send = () => {
     const content = draft.trim();
@@ -38,6 +43,20 @@ export function ChatPanel({ conceptId }: { conceptId: string }) {
         onError: (err) => showToast(err.message),
       },
     );
+  };
+
+  const onComposerDragOver = (e: DragEvent) => {
+    if (!e.dataTransfer.types.includes(IMAGE_DRAG_TYPE)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+  };
+
+  const onComposerDrop = (e: DragEvent) => {
+    const imageId = e.dataTransfer.getData(IMAGE_DRAG_TYPE);
+    if (!imageId) return;
+    e.preventDefault();
+    if (attachedImageIds.includes(imageId)) return;
+    setAttachedImageIds(conceptId, [...attachedImageIds, imageId]);
   };
 
   return (
@@ -67,68 +86,93 @@ export function ChatPanel({ conceptId }: { conceptId: string }) {
             <p className="whitespace-pre-wrap">{message.content}</p>
             {message.attached_image_ids.length > 0 && (
               <div className="mt-1 flex flex-wrap gap-1">
-                {message.attached_image_ids.map((id) => (
-                  <span
-                    key={id}
-                    className="rounded bg-white/70 px-1.5 py-0.5 text-[10px] text-gray-500"
-                  >
-                    img:{id.slice(0, 8)}
-                  </span>
-                ))}
+                {message.attached_image_ids.map((id) => {
+                  const image = imageById(id);
+                  return image ? (
+                    <img
+                      key={id}
+                      src={image.url}
+                      alt=""
+                      className="h-8 w-8 rounded object-cover"
+                    />
+                  ) : (
+                    <span
+                      key={id}
+                      className="rounded bg-white/70 px-1.5 py-0.5 text-[10px] text-gray-500"
+                    >
+                      img:{id.slice(0, 8)}
+                    </span>
+                  );
+                })}
               </div>
             )}
           </div>
         ))}
+        {postChat.isPending && (
+          <div className="flex items-center gap-1.5 rounded-md bg-gray-100 px-2.5 py-1.5 text-sm text-gray-500">
+            <span className="h-3 w-3 animate-spin rounded-full border-2 border-gray-400 border-t-transparent" />
+            Refining...
+          </div>
+        )}
       </div>
 
-      {attachedImageIds.length > 0 && (
-        <div className="mb-1.5 flex flex-wrap gap-1">
-          {attachedImageIds.map((id) => (
-            <span
-              key={id}
-              className="flex items-center gap-1 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600"
-            >
-              img:{id.slice(0, 8)}
-              <button
-                type="button"
-                className="text-gray-400 hover:text-gray-700"
-                onClick={() =>
-                  setAttachedImageIds(
-                    conceptId,
-                    attachedImageIds.filter((i) => i !== id),
-                  )
-                }
-              >
-                ×
-              </button>
-            </span>
-          ))}
-        </div>
-      )}
+      {/* Composer drop target: dragging an image node here (see the "Drag to
+          chat" grip in ImageNode.tsx) attaches it as temporary context for
+          the next message only; it is never sent to the image model. */}
+      <div className="flex flex-col" onDragOver={onComposerDragOver} onDrop={onComposerDrop}>
+        {attachedImageIds.length > 0 && (
+          <div className="mb-1.5 flex flex-wrap gap-1.5">
+            {attachedImageIds.map((id) => {
+              const image = imageById(id);
+              return (
+                <span
+                  key={id}
+                  className="flex items-center gap-1 rounded bg-gray-100 p-0.5 pr-1.5 text-[10px] text-gray-600"
+                >
+                  {image ? (
+                    <img src={image.url} alt="" className="h-8 w-8 rounded object-cover" />
+                  ) : (
+                    `img:${id.slice(0, 8)}`
+                  )}
+                  <button
+                    type="button"
+                    className="text-gray-400 hover:text-gray-700"
+                    onClick={() =>
+                      setAttachedImageIds(
+                        conceptId,
+                        attachedImageIds.filter((i) => i !== id),
+                      )
+                    }
+                  >
+                    ×
+                  </button>
+                </span>
+              );
+            })}
+          </div>
+        )}
 
-      {/* Extension point: onDragOver/onDrop here (next slice) reads the
-          dragged image node id and appends it via setAttachedImageIds,
-          matching the drag source added to ImageNode.tsx. */}
-      <Textarea
-        rows={2}
-        placeholder="Describe the idea, or ask for a refinement... (Enter to send, Shift+Enter for newline)"
-        value={draft}
-        disabled={postChat.isPending}
-        onChange={(e) => setDraft(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            send();
-          }
-        }}
-      />
-      <Button
-        className="mt-2 self-end"
-        disabled={!draft.trim() || postChat.isPending}
-        onClick={send}
-      >
-        {postChat.isPending ? "Sending..." : "Send"}
-      </Button>
+        <Textarea
+          rows={2}
+          placeholder="Describe the idea, or ask for a refinement... (Enter to send, Shift+Enter for newline). Drag an image node here to attach it as context."
+          value={draft}
+          disabled={postChat.isPending}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              send();
+            }
+          }}
+        />
+        <Button
+          className="mt-2 self-end"
+          disabled={!draft.trim() || postChat.isPending}
+          onClick={send}
+        >
+          {postChat.isPending ? "Sending..." : "Send"}
+        </Button>
+      </div>
     </div>
   );
 }

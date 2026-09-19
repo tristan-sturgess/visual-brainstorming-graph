@@ -58,7 +58,7 @@ React Flow is the most important frontend choice. It provides custom nodes, drag
 
 ### Regional annotations
 
-An SVG overlay inside the image node. Three rectangle kinds (like / dislike / note) with normalized coordinates. While drawing, disable node drag and canvas pan (React Flow's `nodrag` / `nopan` classes). See [regional-annotations.md](regional-annotations.md). No react-konva.
+Percentage-positioned overlay divs inside the image node. Three rectangle kinds (like / dislike / note) with normalized coordinates. While drawing, node drag and canvas pan are disabled (React Flow's `nodrag` / `nopan` classes); outside annotation mode the rectangles are purely visual so the node still drags normally. See [regional-annotations.md](regional-annotations.md). No react-konva.
 
 ### Uploads and drag-and-drop
 

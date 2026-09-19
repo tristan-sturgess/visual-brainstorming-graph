@@ -1,14 +1,20 @@
 // Right-panel view for a selected image node: the image large, a debounced
-// feedback textarea, provenance, and delete (backend enforces the deletion
-// rules; 409s are surfaced as a toast).
+// feedback textarea, provenance, its regional annotations, and delete
+// (backend enforces the deletion rules; 409s are surfaced as a toast).
 //
-// Extension point: the annotation overlay (like/dislike/note rectangles)
-// draws on top of the <img> below, next slice.
+// Drawing new annotations happens on the canvas node (see ImageNode.tsx);
+// this panel only lists and deletes the existing ones.
 import { useEffect, useRef, useState } from "react";
-import { useDeleteImage, usePatchImage } from "../api/queries";
+import { useDeleteAnnotation, useDeleteImage, usePatchImage } from "../api/queries";
 import { useEditorStore } from "../store";
 import { Button, Textarea } from "../components/ui";
-import type { ConceptNode, ImageNode } from "../api/types";
+import type { Annotation, ConceptNode, ImageNode } from "../api/types";
+
+const KIND_BADGE: Record<Annotation["kind"], string> = {
+  like: "bg-green-100 text-green-700",
+  dislike: "bg-red-100 text-red-700",
+  note: "bg-slate-100 text-slate-700",
+};
 
 export function ImagePanel({
   image,
@@ -20,6 +26,7 @@ export function ImagePanel({
   const [feedback, setFeedback] = useState(image.feedback);
   const patchImage = usePatchImage();
   const deleteImage = useDeleteImage();
+  const deleteAnnotation = useDeleteAnnotation();
   const selectNode = useEditorStore((s) => s.selectNode);
   const showToast = useEditorStore((s) => s.showToast);
 
@@ -54,8 +61,6 @@ export function ImagePanel({
     <div className="flex h-full min-h-0 flex-col gap-3 p-4">
       <div className="relative overflow-hidden rounded-md border border-gray-200">
         <img src={image.url} alt="" className="block w-full" />
-        {/* Extension point: annotation overlay mounts here. */}
-        <div className="pointer-events-none absolute inset-0" data-annotation-overlay-slot="" />
       </div>
 
       <p className="text-xs text-gray-500">{provenance}</p>
@@ -73,6 +78,48 @@ export function ImagePanel({
             scheduleSave(e.target.value);
           }}
         />
+      </div>
+
+      <div>
+        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">
+          Annotations
+        </label>
+        {image.annotations.length === 0 ? (
+          <p className="text-xs text-gray-400">
+            Draw a like / dislike / note rectangle on the image on the canvas.
+          </p>
+        ) : (
+          <ul className="space-y-1.5">
+            {image.annotations.map((annotation) => (
+              <li
+                key={annotation.id}
+                className="flex items-start justify-between gap-2 rounded-md border border-gray-200 px-2 py-1.5"
+              >
+                <div className="flex items-start gap-2">
+                  <span
+                    className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${KIND_BADGE[annotation.kind]}`}
+                  >
+                    {annotation.kind}
+                  </span>
+                  <span className="text-xs text-gray-700">
+                    {annotation.note || <span className="text-gray-400">No note</span>}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="shrink-0 text-xs text-gray-400 hover:text-red-600"
+                  onClick={() =>
+                    deleteAnnotation.mutate(annotation.id, {
+                      onError: (err) => showToast(err.message),
+                    })
+                  }
+                >
+                  Delete
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <Button variant="danger" className="self-start" onClick={handleDelete} disabled={deleteImage.isPending}>
