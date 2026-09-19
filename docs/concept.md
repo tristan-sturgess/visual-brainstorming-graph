@@ -183,15 +183,16 @@ The user stays in explicit control of graph structure. AI refines content inside
 
 ## Demo script
 
-The demo scenario is concept art for a personal website.
+The demo scenario is fantasy concept art: a wizard fighting a dragon.
 
-1. Create a root concept. In chat: "Hero illustration for my personal site. Isometric desk scene, warm palette, a bit playful." The LLM writes the concept. Generate.
-2. Four candidates appear. On one, add feedback "Love the palette. The sleeping cat is perfect." and draw a like rectangle over the cat. On another, add "Great composition, but the background is too busy." and draw a dislike rectangle over the busy wall.
-3. Drag the "+" under the first image onto empty canvas. The new draft is pre-filled. In chat: "Same scene, simpler background, keep the cat exactly as it is." Generate. The results keep the cat and palette and swap the wall for a plain one.
-4. Live: drag the "+" under the best step 3 result onto empty canvas to branch, then drag the "+" under the second image onto the top of that draft to add it as a second parent. In chat: "Bring in this one's composition." Generate.
-5. Optionally drop a screenshot of the current website onto the canvas, connect it, and say "match these brand colors."
+1. Create a root concept. In chat: "Epic fantasy scene: a lone wizard fighting a huge dragon on a mountain ledge at dusk. Painterly concept-art style, dramatic lighting, wide shot." The LLM writes the concept. Generate.
+2. Four candidates appear. Annotate three of them, one per direction, each with a line of feedback: a like box on the wizard and a dislike box on the castle that competes with the dragon; a like box on the dragon's head and a note saying the bolt must come from the staff; a like box on the waterfall gorge and a dislike box on the too-small wizard.
+3. Drag the "+" under each annotated image onto empty canvas. Three drafts appear, all pre-filled with the root text. Steer each one in chat: "Focus on the wizard...", "Focus on the dragon...", "Focus on the environment...". Generate all three.
+4. In each branch, pick the best result and annotate what to keep and what to change: a note on the staff asking for a rune-carved head, a dislike on the castle that crept back in, a dislike on the wizard that is still too big. Branch again from that image and ask for one tweak. Generate. Six committed concepts now hang under the root, two per branch.
+5. Mark the best step-two result in each branch as locked with like boxes and feedback. Drag the "+" under the locked wizard onto empty canvas, then drag the "+" under the locked dragon and the locked environment onto that draft: three parent edges. In chat: "Combine all three parents into one final hero shot..." Generate. The results carry the scarred wizard, the ember-winged dragon and the gorge with its ruined bridge into one image.
+6. Live: drag the "+" under the best final image onto empty canvas, drag another image node into the chat composer as reasoning-only context, ask for one more change, Generate.
 
-Each Generate takes roughly a minute for four images, so steps 1 through 3 are built before the event and only step 4 runs live. Persistence makes this free. See [demo-runbook.md](demo-runbook.md) for the day-of checklist.
+Each Generate takes 30 to 60 seconds for four images, so steps 1 through 5 are built before the event and only step 6 runs live. Persistence makes this free. See [demo-runbook.md](demo-runbook.md) for the day-of checklist.
 
 ## Demo thesis
 
