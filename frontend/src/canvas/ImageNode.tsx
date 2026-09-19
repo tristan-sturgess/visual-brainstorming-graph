@@ -86,17 +86,20 @@ export function ImageNode({ data, id }: NodeProps<ImageFlowNode>) {
     if (!isAnnotating) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      setNoteDraft((current) => {
-        if (current) return null;
+      // First Escape closes an open note popover; the next one exits
+      // annotation mode. Read `noteDraft` from the closure (it is a dep)
+      // rather than inside a state updater, which React forbids from
+      // updating other components.
+      if (noteDraft) {
+        setNoteDraft(null);
+      } else {
         setAnnotationMode(null);
-        return null;
-      });
+      }
       setDragRect(null);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAnnotating]);
+  }, [isAnnotating, noteDraft, setAnnotationMode]);
 
   const handlePointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (!isAnnotating) return;
