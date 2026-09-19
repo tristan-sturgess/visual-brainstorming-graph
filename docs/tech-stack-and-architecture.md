@@ -38,7 +38,7 @@ Both model IDs live in config.
 
 ### Image generation
 
-The **OpenAI image API** through the official Python SDK (`gpt-image-1` or newer), behind one small module.
+The **OpenAI image API** through the official Python SDK, behind one small module. Default model `gpt-image-2.5-sunburst`; `gpt-image-2.5-flare` is the faster, cheaper sibling for quick brainstorming. Both are config values.
 
 * With connected parent images, use the image-edit endpoint with all parent images as input. This is the primary path.
 * With no parent images, use text-to-image.

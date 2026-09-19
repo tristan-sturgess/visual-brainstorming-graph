@@ -39,6 +39,14 @@ Images are stored under `data/images/`, with only paths and metadata in SQLite. 
 
 Layout: `backend/` (Poetry project, package `app`) and `frontend/` (Vite project). Run with `poetry run uvicorn app.main:app --reload` in `backend/` and `npm run dev` in `frontend/`.
 
+## Verify versions, don't guess
+
+Model IDs, package versions, and SDK call signatures change faster than any agent's training data. Never write one from memory.
+
+- **Model IDs:** check the live source before writing or changing a default. OpenRouter: `curl -s https://openrouter.ai/api/v1/models` (includes pricing and input modalities). OpenAI images: https://developers.openai.com/api/docs/models. Prefer the newest model that fits, and record the verification date next to the default in `.env.example`.
+- **Package versions:** before adding a dependency, look up the current version (`npm view <pkg> version`, `pip index versions <pkg>` or https://pypi.org/project/<pkg>/) and pin to that major. Do not copy version numbers from memory into `pyproject.toml` or `package.json`.
+- **SDK surfaces:** when calling an external SDK (OpenAI images, LangChain, React Flow), read the current docs for the method you are using rather than assuming the signature. Note in your report which page you checked.
+
 ## Keep docs in sync
 
 The `docs/` folder is the source of truth for the product concept and architecture. **Whenever a code change affects behavior, scope, data model, architecture, or stack choices, update the relevant doc in the same change.** If the code deliberately diverges from a doc, update the doc to match reality instead of leaving it stale. Keep `README.md` and this file current too.
