@@ -95,7 +95,7 @@ The backend owns these rules; the frontend just reflects them.
 * Editing text or parents of a committed concept is rejected.
 * Commit compiles the prompt once and stores it on the concept.
 * Deleting a committed concept or a generated image is rejected. Deleting an uploaded image that a committed concept references is rejected.
-* Edges into image nodes are rejected.
+* Edges into image nodes are rejected. Only committed concepts and image nodes can be parents, which keeps the graph acyclic without a cycle check.
 * Chat attachments are passed to the refiner only. The image generator receives parent images exclusively from the frozen reference set.
 
 ## Long-running operations
@@ -108,18 +108,15 @@ Generation takes tens of seconds. Flow:
 
 No SSE, no WebSockets, no job queue.
 
-## API sketch
+## API
 
-* `GET /graph`: all nodes, edges, annotations.
-* `POST /concepts`, `PATCH /concepts/{id}` (draft only), `DELETE /concepts/{id}` (draft only).
-* `POST /concepts/{id}/parents`, `DELETE /concepts/{id}/parents/{node_id}` (draft only).
-* `POST /concepts/{id}/chat`: refine with a message and optional attached image IDs; returns the updated concept and reply. `GET /concepts/{id}/chat` for history.
-* `POST /concepts/{id}/generate`: first call commits; later calls are Generate more.
-* `GET /generations/{id}`.
-* `POST /images/upload`, `PATCH /images/{id}` (feedback, position), `DELETE /images/{id}` (uploaded and unreferenced only).
-* `POST /images/{id}/annotations`, `DELETE /annotations/{id}`.
-* `PATCH /nodes/{id}/position`.
-* Static serving of `data/images/`.
+The full contract, with JSON shapes and error rules, is in [api.md](api.md). Both sides are hand-written against it.
+
+## Configuration and mock mode
+
+Settings come from `.env` (see `.env.example` at the repo root): the two API keys, model IDs, image quality/size, candidate count, and the data directory.
+
+`MOCK_AI=true` (the default) makes the backend run without any external calls: refine returns canned concept text derived from the message, and generation writes placeholder PNGs after a short delay. Every UI flow works in mock mode, so the app can be built and demoed end to end before keys exist. Set it to `false` once both keys are filled in.
 
 ## Testing
 

@@ -75,7 +75,7 @@ Feedback and annotations belong to the image itself rather than to a single refi
 
 ### Edges
 
-* A concept node's parents can be concept nodes and/or image nodes. Multiple parents are allowed.
+* A concept node's parents can be committed concept nodes and/or image nodes. Multiple parents are allowed. Drafts cannot be parents, which keeps the graph acyclic.
 * A generated image node has exactly one incoming edge, from the concept that produced it. An uploaded image node has none.
 * Users cannot create edges into image nodes.
 

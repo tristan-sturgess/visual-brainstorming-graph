@@ -25,7 +25,7 @@ These are the domain rules the code has to respect. The backend enforces them.
 - **Changing intent means a new node.** Branching creates a draft pre-filled with the source concept's text. No LLM call until the user sends a chat message.
 - **One LLM operation for concept text: refine.** It writes the initial concept, refines it, and synthesizes multi-parent concepts. It is vision-capable.
 - **Graph parents vs chat attachments.** Connected parent images are visual references for generation. Image nodes dragged into the chat are temporary reasoning context for the refiner only and are never sent to the image model.
-- **Image nodes come from generation or upload** and behave identically afterwards. A generated image's only incoming edge is from its producing concept; an uploaded image has none. Nobody creates edges into image nodes.
+- **Image nodes come from generation or upload** and behave identically afterwards. A generated image's only incoming edge is from its producing concept; an uploaded image has none. Nobody creates edges into image nodes. Only committed concepts and image nodes can be parents of a draft.
 - **Feedback and annotations belong to the image node,** not to a single refinement step, so they carry forward wherever that image is reused. Annotations are like / dislike / note rectangles with normalized coordinates.
 - **The backend owns these rules.** The frontend handles interaction and presentation but is not the source of truth for concept state or generation provenance.
 
@@ -35,7 +35,9 @@ Backend: Python 3.12+, Poetry, FastAPI, Pydantic, SQLAlchemy + SQLite (`create_a
 
 Frontend: React, TypeScript, Vite, React Flow (`@xyflow/react`), Zustand, TanStack Query, Tailwind, shadcn/ui. Hand-written API types.
 
-Images are stored under `data/images/`, with only paths and metadata in SQLite. Full details are in [docs/tech-stack-and-architecture.md](docs/tech-stack-and-architecture.md).
+Images are stored under `data/images/`, with only paths and metadata in SQLite. Full details are in [docs/tech-stack-and-architecture.md](docs/tech-stack-and-architecture.md). The HTTP contract is [docs/api.md](docs/api.md); change it there first, then on both sides. `MOCK_AI=true` in `.env` runs everything without API keys.
+
+Layout: `backend/` (Poetry project, package `app`) and `frontend/` (Vite project). Run with `poetry run uvicorn app.main:app --reload` in `backend/` and `npm run dev` in `frontend/`.
 
 ## Keep docs in sync
 
