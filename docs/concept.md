@@ -2,116 +2,128 @@
 
 ## Goal
 
-Build a visually impressive proof-of-concept for exploring image ideas as a branching graph rather than a linear prompt history.
+Build a visually impressive proof of concept for exploring AI-generated image ideas as a branching graph rather than a linear prompt history.
 
-A user should be able to start from a rough idea, generate several visual directions, explore those directions independently, annotate what they like or dislike, and later combine multiple branches into a new generation.
+The motivating experience: you are generating concept art, you like one piece of one result, and you wonder what it would look like tweaked in some way. In a linear chat you lose the other directions you already found. Here, every direction stays on the canvas. A user can start from a rough idea, generate several visual directions, explore each independently, mark what they like or dislike, and later combine branches into a new generation.
 
 The graph is not just a history view. It is the primary interface for composing context and references for future generations.
 
 ## Core workflow
 
- 1. The user starts with a rough concept, typed or spoken.
- 2. An LLM turns that input into a structured, human-readable concept.
- 3. While the concept node is still a draft, the user can refine it through chat, edit it directly, and add or remove parent connections.
- 4. The user clicks Generate.
- 5. The concept node is committed: its concept text and parent connections become read-only.
- 6. The system compiles the frozen concept into one model-facing image-generation prompt and stores it with the generation state.
- 7. Several candidate images are generated from the same prompt and the same connected image references. The variation comes from the image model itself rather than from intentionally different prompts.
- 8. Each generated image appears as its own image node connected to the concept that produced it.
- 9. The user can add persistent feedback to individual image nodes, such as:
-    * "I like the character design."
-    * "Keep the lighting, but not the composition."
-    * "The background is too busy."
-10. The user can branch from an existing concept or image to create a new draft concept node.
-11. A concept node can accept multiple parents, allowing separate branches to be combined.
-12. The LLM synthesizes a new concept from the available parent context and any user refinement instructions.
-13. The user repeats the loop.
+1. The user creates a root concept node. It starts as an empty draft.
+2. The user describes the idea in the chat panel. The LLM writes the concept: a short title and a few sentences of human-readable creative direction.
+3. While the concept is a draft, the user can keep refining it through chat, edit the text directly, and add or remove parent connections.
+4. The user clicks Generate.
+5. The concept is committed: its text and parent connections become read-only.
+6. The system compiles the frozen concept, together with the feedback and regional annotations on its connected parent images, into one model-facing image-generation prompt and stores it.
+7. A fixed number of candidate images (a config value, default 4) are generated from that prompt and the connected parent images. Variation comes from the image model itself, not from different prompts.
+8. Each generated image appears as its own image node under the concept that produced it.
+9. The user adds feedback to image nodes: a free-text note and optional regional annotations (like / dislike / note rectangles).
+10. The user branches from a concept or an image by dragging from its handle onto empty canvas. This creates a new draft concept with that node as its parent, pre-filled with the source concept's text. No LLM call happens until the user sends a chat message.
+11. The user connects additional parents by dragging from other nodes onto the draft. How to combine them is expressed in chat, for example "use the lighting from this one with the character from that one."
+12. Repeat.
 
-A committed concept can generate additional images later, but those images should reuse the same frozen generation prompt and reference set. Changing the concept or its parents requires creating a new concept node.
+**Generate more** on a committed concept reuses the stored prompt and the same reference images exactly. It never recompiles, even if feedback on the parent images has changed since. Changing intent means branching to a new concept.
 
 ## Node types
 
 ### Concept node
 
-Represents the current creative direction.
+Represents a creative direction.
 
 A concept node contains:
 
-* a human-readable structured concept;
-* optional user instructions or notes;
-* references to its parent nodes;
-* a Generate action that produces candidate image nodes;
-* once committed, the frozen model-facing generation prompt used for generation.
+* a **title** and a short **body** (a few sentences) written for humans;
+* connections to its parent nodes (concept nodes and/or image nodes);
+* a status: **draft** or **committed**;
+* once committed, the frozen model-facing generation prompt;
+* a Generate action (draft) or Generate more action (committed).
 
-A concept node has two phases:
+There is no separate notes field and no separate prompt node. The concept text is the whole user-facing state of the idea. It should read as the current distilled intent, not as a transcript of how the user got there.
 
-**Draft**
+**Draft state**
 
-* concept text can be edited or refined through chat;
+* text can be edited directly or refined through chat;
 * parent connections can be added or removed;
-* no generation history is yet attached to that exact state.
+* image nodes can be dragged into the chat as temporary context;
+* the node can be deleted.
 
-**Committed**
+**Committed state**
 
-* created the first time the user clicks Generate;
-* concept text and parent connections become read-only;
-* future Generate actions reuse the same frozen generation intent;
-* further changes happen by branching to a new concept node.
-
-Creating a child concept is the primary refinement mechanism after a concept has been committed. A separate "prompt refinement" node type is not necessary for the proof of concept.
-
-The concept should represent the current distilled creative intent, not an ever-growing transcript of how the user arrived there.
+* entered the first time the user clicks Generate;
+* text and parent connections are read-only;
+* Generate more reuses the same frozen prompt and reference set;
+* the node cannot be deleted;
+* further changes happen by branching to a new draft concept.
 
 ### Image node
 
-Represents one generated candidate image.
+Represents one image on the canvas. There are two sources:
 
-An image node contains:
+* **Generated**: produced by a committed concept. Its provenance links it to that concept and to the generation batch that produced it.
+* **Uploaded**: dropped onto the canvas or added via an Upload button by the user. Screenshots, sketches, mood images, or earlier work. It has no producing concept.
 
-* the generated image;
-* a persistent feedback / annotation field;
-* a connection affordance for using the image as a parent in a future concept;
-* provenance linking it to the committed concept and generation request that produced it.
+Both kinds behave identically once on the canvas. An image node contains:
 
-Feedback belongs to the image itself rather than to a single refinement step so that the feedback remains useful if the same image is reused later.
+* the image file;
+* a persistent free-text **feedback** field;
+* zero or more **regional annotations** (see [regional-annotations.md](regional-annotations.md));
+* a handle for connecting the image as a parent of a draft concept;
+* provenance (generation batch and concept, or "uploaded").
+
+Feedback and annotations belong to the image itself rather than to a single refinement step, so they carry forward wherever that image is reused.
+
+### Edges
+
+* A concept node's parents can be concept nodes and/or image nodes. Multiple parents are allowed.
+* A generated image node has exactly one incoming edge, from the concept that produced it. An uploaded image node has none.
+* Users cannot create edges into image nodes.
+
+### Deletion
+
+Draft concepts can be deleted. Uploaded image nodes can be deleted while no committed concept references them. Committed concepts and generated images cannot be deleted. This keeps provenance intact without any extra rules.
 
 ## Graph interaction
 
-The canvas should support pan/zoom and make branching visually obvious.
+The canvas supports pan/zoom and makes branching visually obvious.
 
-Primary connection interaction:
+Primary interactions:
 
-* Drag from a node's + / output affordance onto empty space to create a new draft concept node with that node as a parent.
-* Drag from another existing node onto that concept node to add an additional parent.
-* Multiple incoming edges represent multiple sources being made available to the new concept.
+* Drag from a node's handle onto empty canvas to create a new draft concept with that node as a parent.
+* Drag from another existing node onto a draft concept to add an additional parent.
+* Select a draft concept's parent edge and delete it to remove the parent.
+* Drop an image file onto the canvas to create an uploaded image node.
+* Drag an image node into the chat composer to attach it to the next message.
 
-The graph should make it easy to visually understand how a final result emerged from earlier experiments.
-
-Connections do not need complex merge semantics. They provide context and references; the user can add refinement instructions if they want more control, but the system should not require them to formally explain how every parent should be combined.
+Multiple incoming edges mean multiple sources are available to the new concept. Connections do not carry merge semantics. They provide context and references; the user explains how to combine them in chat only if they care.
 
 ## Refinement chat
 
-A familiar chat/refinement panel can live on the right side when a draft concept node is selected.
+A chat panel on the right is shown when a draft concept is selected. There is one LLM operation, **refine**, used for the initial concept, later refinement, and multi-parent synthesis alike.
 
-The user can describe changes conversationally rather than manually writing a production-quality image prompt. The LLM updates the concept node's human-readable concept.
+Each refine call receives:
 
-The refinement model can use:
+* the current concept title and body (possibly empty);
+* the text of connected parent concepts;
+* connected parent images, with their feedback and regional annotations;
+* the chat history for this draft;
+* any image nodes attached to the current message;
+* the user's message.
 
-* parent concept text;
-* connected images;
-* persistent feedback stored on those images;
-* regional annotations;
-* the user's current refinement instruction;
-* temporary chat attachments.
+It returns an updated title and body plus a short assistant reply. The refiner model must be vision-capable, since it looks at images.
 
-Images can also be attached to the refinement conversation as temporary reasoning context without necessarily becoming graph parents. This covers cases such as:
+### Chat attachments
 
-> "Look at this image. I don't like what happened to the face. Update the concept to avoid that, but don't use this image as a visual reference in the next generation."
+The user can drag any image node from the canvas into the chat composer. The image, its feedback, and its annotations become context for that message only. Attached images are **never** sent to the image model. This covers cases such as:
+
+> "Look at this one. I don't like what happened to the face. Update the concept to avoid that, but don't use it as a visual reference."
 
 This keeps two ideas distinct:
 
-* **Graph parent connections** represent reusable context and generation references.
-* **Chat attachments** can be temporary context used only to reason about or refine the concept.
+* **Graph parent connections** are reusable context and visual references for generation.
+* **Chat attachments** are temporary reasoning context for the refiner only.
+
+Since uploads become image nodes, there is no separate upload-to-chat path.
 
 ## Image-generation inputs
 
@@ -119,84 +131,72 @@ The user's primary abstraction is the concept, not the raw image-generation prom
 
 When the user first clicks Generate:
 
-1. The concept and parent connections are frozen.
-2. A lightweight LLM step converts the human-readable concept into one clear model-facing image-generation prompt.
-3. That compilation step should preserve the user's intent rather than creatively reinterpret it.
-4. The compiled prompt is stored so subsequent generations from the same committed concept can reuse it exactly.
-5. The image model receives:
-   * the compiled generation prompt;
-   * any image nodes intentionally connected as visual-reference parents.
-6. Multiple candidate images are generated from that same request.
+1. The concept text and parent connections are frozen.
+2. A text-only LLM step (the **prompt compiler**) converts the concept into one clear model-facing image-generation prompt. Its input is the frozen concept plus the feedback and annotations of directly connected parent images, serialized as text (for example "like, upper left: the character design"). It preserves the user's intent rather than reinterpreting it.
+3. The compiled prompt is stored on the concept.
+4. The image model receives the compiled prompt and the connected parent images as references. With one or more parent images this is an image-edit call; with none it is text-to-image.
+5. The configured number of candidates is generated from that one request.
 
-The raw model-facing prompt can be available as an advanced/debug detail, but users should not need to see or edit it in the normal workflow.
+The image-edit path is the primary path. Most generations in a session have at least one parent image, because "tweak this image" is the core moment of the product.
 
-The broader graph history does not need to be sent directly to the image model. Parent history, feedback, and annotations are used while refining the concept; the concept acts as the distilled textual state of the idea.
+The raw compiled prompt is available as an advanced/debug detail on the committed node, but users should not need to read or edit it.
+
+The wider graph history is not sent to the image model. Grandparents, chat history, and attachments influence the concept text during refinement; the concept is the distilled state of the idea.
 
 ## Concept variation
 
-For the proof of concept, one committed concept corresponds to one generation intent.
-
-If the user wants deliberately different interpretations of an idea, that should be represented as different concept nodes rather than silently generating different prompts behind a single concept.
-
-A future agentic workflow could support requests such as:
-
-> "Create three variations of this concept, each exploring a different lighting direction."
-
-The system could create several child concept nodes automatically. Autonomous concept diversification like this is deliberately out of scope for the first version.
-
-## Voice input
-
-For the initial concept, support voice input if time allows.
-
-The intended flow is:
-
-**rough voice dump → transcription → LLM-refined concept → user review/edit → image generation**
-
-Voice is an input convenience, not a separate agentic workflow.
+One committed concept corresponds to one generation intent. If the user wants deliberately different interpretations of an idea, those are separate concept nodes. Automatic fan-out ("make three variations exploring different lighting") is out of scope.
 
 ## Scope for the proof of concept
 
-The demo should prioritize the visual creative loop and polish around the graph.
+The demo prioritizes the visual creative loop and polish on the graph.
 
 ### In scope
 
-* interactive node canvas;
+* interactive node canvas with pan/zoom;
 * draft and committed concept nodes;
-* image nodes;
-* multiple generated candidate images from one frozen generation intent;
-* branching;
-* multiple parents / branch recombination;
-* persistent feedback on image nodes;
-* regional annotations;
-* LLM-assisted concept refinement;
-* image generation using selected parent images;
-* one-time compilation of a concept into a stored model-facing generation prompt;
-* simple refinement chat;
-* voice-to-concept input if practical;
-* local/simple persistence;
-* a static pricing page for product-demo polish.
+* generated and uploaded image nodes;
+* multiple candidate images from one frozen generation request;
+* Generate more;
+* branching by dragging from a node;
+* multiple parents;
+* free-text feedback on image nodes;
+* regional annotations (like / dislike / note rectangles);
+* chat refinement of draft concepts, with image nodes draggable into the chat;
+* one-time compilation of a concept into a stored generation prompt;
+* image generation using connected parent images as references;
+* local SQLite persistence.
 
-### Deliberately out of scope
+### Out of scope
 
-* authentication;
-* multi-tenancy;
-* teams and permissions;
-* subscriptions;
-* Stripe;
-* credits / per-user usage accounting;
-* production-grade rate limiting or cost controls;
-* autonomous agents that freely create, delete, or rewire the graph;
-* agentic generation of multiple concept variants;
-* sophisticated conflict-resolution semantics for contradictory parents.
+* authentication, multi-tenancy, teams, permissions;
+* billing, subscriptions, credits, pricing pages;
+* production rate limiting or cost controls;
+* voice input (use the OS dictation feature into the chat box instead);
+* autonomous agents that create, delete, or rewire the graph;
+* automatic generation of concept variants;
+* merge semantics or conflict resolution for contradictory parents;
+* multiple workspaces or projects (one graph);
+* hosting, object storage, or anything beyond one machine.
 
-The first version should keep the user explicitly in control of graph structure. AI can refine content inside the workflow without becoming a general-purpose agent controlling the whole application.
+The user stays in explicit control of graph structure. AI refines content inside nodes; it does not drive the application.
+
+## Demo script
+
+The demo scenario is concept art for a personal website.
+
+1. Create a root concept. In chat: "Hero illustration for my personal site. Isometric desk scene, warm palette, a bit playful." The LLM writes the concept. Generate.
+2. Four candidates appear. On one, add feedback "love the palette" and draw a like rectangle over the desk. On another, add "great composition, background too busy" and draw a dislike rectangle over the background.
+3. Drag from the first image onto empty canvas. The new draft is pre-filled. In chat: "Same scene, simpler background, keep the desk exactly as it is." Generate.
+4. Drag the second image onto a new draft branched from step 3's best result, as a second parent. In chat: "Bring in this one's composition." Generate.
+5. Optionally drop a screenshot of the current website onto the canvas, connect it, and say "match these brand colors."
+
+Because each generation takes tens of seconds, build steps 1 through 3 before the event and run live generation only for the final combine step. Persistence makes this free.
 
 ## Demo thesis
 
-The compelling part of the product is not simply image generation with a node UI.
+The compelling part is not image generation with a node UI. It is that creative exploration becomes a visible, reusable structure:
 
-The core idea is that creative exploration becomes a visible, reusable structure:
+**generate, compare, annotate, branch, combine, refine, generate again**
 
-**generate → compare → annotate → branch → combine → refine → generate again**
-
-Users can preserve multiple promising directions instead of overwriting a single prompt, and can later recombine those directions while retaining both the visual references and the reasoning about what worked in each one.
+Users preserve multiple promising directions instead of overwriting one prompt, and can later recombine those directions while keeping both the visual references and the notes about what worked in each one.

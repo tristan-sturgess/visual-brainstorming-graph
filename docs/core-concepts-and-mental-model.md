@@ -1,28 +1,32 @@
 # Core Concepts & Mental Model
 
-This document captures the simplest mental model for the product so that the graph, UI, and implementation all reinforce the same ideas.
+This document captures the simplest mental model for the product so that the graph, UI, and implementation all reinforce the same ideas. [concept.md](concept.md) is the detailed spec; this is the summary to keep in your head.
 
 ## The user-facing model
 
 **Concept node = what I want.**
 
-A concept node is the current distilled creative direction. It should be readable and editable by a person. Users should not need to write production-quality image prompts.
+A concept node is the current distilled creative direction: a title and a few sentences a person can read and edit. Users never write production-quality image prompts.
 
 **Connected image = what I want the model to visually reference.**
 
-Connecting an image to a draft concept makes that image available as a visual reference for future generation. Feedback and annotations on the image can also help the LLM refine the concept.
+Connecting an image to a draft concept makes that image a visual reference for generation. The image's feedback and regional annotations also inform both the chat refiner and the one-time prompt compilation.
+
+**Uploaded image = my own reference, on the same footing as a generated one.**
+
+The user can drop their own images onto the canvas. They become image nodes and behave like generated ones: connect them, annotate them, drag them into chat.
 
 **Generation prompt = hidden adapter between the concept and the image model.**
 
-When a concept is first generated, the system compiles the human-readable concept into one model-facing image prompt. This is an implementation detail rather than the main user interface.
+When a concept is first generated, the system compiles the concept, plus the notes on its connected parent images, into one model-facing prompt. This is an implementation detail, visible only as a debug detail.
 
 **Multiple generated images = different stochastic interpretations of the same request.**
 
-A committed concept uses one frozen generation prompt and one frozen set of visual references. Multiple candidate images are generated from that same request.
+A committed concept uses one frozen prompt and one frozen set of visual references. Every candidate, including those from Generate more, comes from that same request.
 
 **New concept node = a meaningful change in creative intent.**
 
-If the user wants to change the concept, change its parents, or deliberately explore a different interpretation, that becomes a new node rather than silently mutating the history.
+To change the concept, its parents, or the interpretation, branch to a new node. History is never mutated.
 
 ## Concept lifecycle
 
@@ -30,28 +34,27 @@ A concept has two states.
 
 ### Draft
 
-A draft concept is a workspace for thinking.
+A draft concept is a workspace for thinking. The user can:
 
-The user can:
-
-* refine it through chat;
-* edit the concept directly;
+* refine it through chat (the first chat message writes the concept from scratch);
+* edit the text directly;
 * add or remove parent connections;
-* attach temporary reasoning context;
-* decide what the next generation should represent.
+* drag image nodes into the chat as temporary context;
+* delete it.
+
+Branching from a node creates a draft pre-filled with the source concept's text. No LLM call happens until the user speaks.
 
 ### Committed
 
-The first Generate action commits the concept.
+The first Generate commits the concept. At that point:
 
-At that point:
-
-* the concept text is frozen;
+* the text is frozen;
 * the parent connections are frozen;
-* the model-facing generation prompt is compiled and stored;
-* generated images are attached to that exact state.
+* the generation prompt is compiled once and stored;
+* generated images attach to that exact state;
+* the node can no longer be deleted.
 
-The user can generate more images from a committed concept, but those generations reuse the same frozen intent. To change anything meaningful, branch to a new concept.
+Generate more reuses the frozen prompt and references. To change anything meaningful, branch.
 
 ## What the graph means
 
@@ -63,7 +66,7 @@ Multiple parents mean:
 
 > "Use these earlier ideas or references as context for this new direction."
 
-They do not imply a rigid merge algorithm. The user can explain how to combine them if they care, but the system should still be able to attempt a synthesis without requiring extra instructions.
+They do not imply a merge algorithm. The user can say how to combine them in chat, but the system attempts a synthesis without being told.
 
 ## Context versus generation references
 
@@ -72,47 +75,43 @@ There are two intentionally different ways an image can be used.
 **Graph-connected image**
 
 * persists as part of the graph;
-* becomes an explicit visual reference for generation;
-* carries its feedback and annotations forward as useful reasoning context.
+* is an explicit visual reference for generation;
+* carries its feedback and annotations into refinement and prompt compilation.
 
-**Temporary chat attachment**
+**Chat attachment (an image node dragged into the chat)**
 
-* is available to the LLM while refining the concept;
-* does not automatically become a visual reference for the next image generation.
+* is available to the refiner for that message;
+* is never sent to the image model.
 
-This distinction lets the user say, in effect:
+This lets the user say, in effect:
 
 > "Learn from this image, but do not copy from it."
 
 ## The concept is the compression layer
 
-The full ancestry of the graph can become large.
+The full ancestry of the graph can become large. The concept text is the distilled summary of the intent that matters now.
 
-The current concept should therefore act as a distilled summary of the creative intent that matters now. Parent concepts, images, annotations, and chat history can influence refinement, but the image model does not need the entire graph history.
+What each model sees:
 
-This keeps the user-facing concept understandable and prevents prompt context from growing without bound.
+* **Refiner**: the draft, its direct parents (text, images, feedback, annotations), the draft's chat history, and any attachments.
+* **Prompt compiler**: the frozen concept and the feedback and annotations of its direct parent images. Text only.
+* **Image model**: the compiled prompt and the direct parent images. Nothing else.
+
+Grandparents and older chat history reach the image model only through the words that ended up in the concept.
 
 ## One concept, one intent
 
-For the first version, a committed concept should not secretly fan out into several deliberately different prompts.
-
-If the user wants three intentional variations of a concept, those should eventually become three visible child concept nodes.
-
-That preserves a simple invariant:
+A committed concept never fans out into several deliberately different prompts. If the user wants three intentional variations, those are three visible child concepts, created by the user.
 
 > If two images came from the same committed concept, they are alternative generations of the same creative request.
 
-A future agent can automate the creation of concept variants, but that is a layer on top of the core model rather than part of generation itself.
-
 ## Product principle
 
-The system should ask the user for as little formal specification as possible.
+The system asks for as little formal specification as possible. The user expresses intent by:
 
-The user expresses intent by:
-
-* writing or speaking about what they want;
+* writing about what they want;
 * choosing which images or concepts to connect;
-* annotating what worked or did not;
+* marking what worked or did not, in text or by drawing a box;
 * branching when they want to explore a different direction.
 
-The AI should turn that lightweight input into useful generation context without forcing the user to manage low-level prompt engineering or graph semantics.
+The AI turns that lightweight input into useful generation context without making the user manage prompt engineering or graph semantics.
