@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "app"
+version = "0.1.0"
+description = "Visual Brainstorming Graph backend"
+authors = ["Tristan Sturgess <tristan.sturgess@gmail.com>"]
+packages = [{ include = "app" }]
+
+[tool.poetry.dependencies]
+python = ">=3.12,<4"
+fastapi = "^0.141.1"
+uvicorn = { extras = ["standard"], version = "^0.53.0" }
+sqlalchemy = "^2.0.54"
+pydantic = "^2.13.5"
+pydantic-settings = "^2.15.0"
+python-multipart = "^0.0.32"
+langchain-openai = "^1.6.2"
+openai = "^3.16.2"
+pillow = "^12.3.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^9.1.1"
+httpx = "^0.28.1"
+
+[build-system]
+requires = ["poetry-core>=2.0"]
+build-backend = "poetry.core.masonry.api"
