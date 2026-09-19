@@ -68,6 +68,19 @@ def _compiler_llm():
     )
 
 
+_TRAILING_JUNK = set('}]) `"\'“”\n\r\t')
+
+
+def _clean(text: str) -> str:
+    """Strip stray closing braces/quotes/backticks that structured-output
+    parsing sometimes leaves at the end of a string field (observed live with
+    Sonnet 5 via OpenRouter: the prompt ended in `”}```)}]}}}}`)."""
+    text = text.strip()
+    while text and text[-1] in _TRAILING_JUNK:
+        text = text[:-1]
+    return text.strip()
+
+
 def _image_data_url(path: str) -> str:
     mime, _ = mimetypes.guess_type(path)
     mime = mime or "image/png"
@@ -107,14 +120,14 @@ def refine(
     for path in [*parent_image_paths, *attachment_paths]:
         content.append({"type": "image_url", "image_url": {"url": _image_data_url(path)}})
 
-    llm = _refiner_llm().with_structured_output(RefineOutput)
+    llm = _refiner_llm().with_structured_output(RefineOutput, method="function_calling")
     result = llm.invoke(
         [
             {"role": "system", "content": REFINER_SYSTEM},
             {"role": "user", "content": content},
         ]
     )
-    return result.title, result.body, result.reply
+    return _clean(result.title), _clean(result.body), _clean(result.reply)
 
 
 def compile(title: str, body: str, parent_notes: list[str]) -> str:
@@ -127,11 +140,11 @@ def compile(title: str, body: str, parent_notes: list[str]) -> str:
     else:
         text += "\nReference images: none\n"
 
-    llm = _compiler_llm().with_structured_output(CompileOutput)
+    llm = _compiler_llm().with_structured_output(CompileOutput, method="function_calling")
     result = llm.invoke(
         [
             {"role": "system", "content": COMPILER_SYSTEM},
             {"role": "user", "content": text},
         ]
     )
-    return result.prompt
+    return _clean(result.prompt)
