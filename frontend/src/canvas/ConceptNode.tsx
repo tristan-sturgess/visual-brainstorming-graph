@@ -1,9 +1,11 @@
 // Concept card. Target handle on top accepts parent connections; source
 // handle on bottom is dragged out to branch or to connect this node as a
-// parent of another draft. The backend enforces which connections are legal
-// (e.g. a draft cannot be a parent) -- this node does not pre-filter that.
+// parent of another draft. While a connection that this draft could accept
+// is being dragged, the target handle grows to cover the whole card so it
+// can be dropped anywhere on it. That check only drives the highlight; the
+// backend still enforces which connections are legal.
 import { useEffect } from "react";
-import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
+import { Handle, Position, useConnection, type Node, type NodeProps } from "@xyflow/react";
 import { useGenerate, useGeneration } from "../api/queries";
 import { useEditorStore } from "../store";
 import { Button } from "../components/ui";
@@ -40,6 +42,18 @@ export function ConceptNode({ data, id }: NodeProps<ConceptFlowNode>) {
   const isDraft = concept.status === "draft";
   const canGenerate = isDraft ? concept.body.trim().length > 0 : true;
 
+  // Only images and committed concepts can be parents, and only of a draft.
+  const isDropTarget = useConnection((c) => {
+    if (!c.inProgress || !isDraft) return false;
+    const from = c.fromNode;
+    if (from.id === id || concept.parent_ids.includes(from.id)) return false;
+    const fromConcept = (from.data as { concept?: ConceptNodeModel }).concept;
+    return from.type === "image" || fromConcept?.status === "committed";
+  });
+  const isDropHover = useConnection(
+    (c) => isDropTarget && c.inProgress && c.toNode?.id === id && c.isValid === true,
+  );
+
   const handleGenerate = (e: React.MouseEvent) => {
     e.stopPropagation();
     generateMutation.mutate(concept.id, {
@@ -58,8 +72,22 @@ export function ConceptNode({ data, id }: NodeProps<ConceptFlowNode>) {
         type="target"
         position={Position.Top}
         isConnectable
-        className="!left-0 !top-0 !h-4 !w-full !transform-none !rounded-none !border-0 !opacity-0"
-      />
+        className={
+          isDropTarget
+            ? `!inset-0 !z-10 !flex !h-full !w-full !transform-none !items-center !justify-center !rounded-md !border-2 ${
+                isDropHover
+                  ? "!border-solid !border-indigo-600 !bg-indigo-500/15"
+                  : "!border-dashed !border-indigo-400 !bg-indigo-500/5"
+              }`
+            : "!left-0 !top-0 !h-4 !w-full !transform-none !rounded-none !border-0 !opacity-0"
+        }
+      >
+        {isDropHover && (
+          <span className="pointer-events-none rounded-full bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white shadow">
+            Add as parent
+          </span>
+        )}
+      </Handle>
 
       <div className="mb-1.5 flex items-center justify-between gap-2">
         <span
@@ -99,7 +127,7 @@ export function ConceptNode({ data, id }: NodeProps<ConceptFlowNode>) {
       <Handle
         type="source"
         position={Position.Bottom}
-        title="Drag onto empty canvas to branch, or onto a concept to add it as a parent"
+        title="Drag onto empty canvas to branch, or onto a draft concept to add it as a parent"
         className="!h-6 !w-6 !cursor-crosshair !rounded-full !border-2 !border-white !bg-indigo-600 transition-transform hover:!scale-125 hover:!bg-indigo-700"
       >
         <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-bold leading-none text-white">

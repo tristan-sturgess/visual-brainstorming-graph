@@ -323,7 +323,7 @@ export function ImageNode({ data, id }: NodeProps<ImageFlowNode>) {
       <Handle
         type="source"
         position={Position.Bottom}
-        title="Drag onto empty canvas to branch, or onto a concept to add it as a parent"
+        title="Drag onto empty canvas to branch, or onto a draft concept to add it as a parent"
         className="!h-6 !w-6 !cursor-crosshair !rounded-full !border-2 !border-white !bg-indigo-600 transition-transform hover:!scale-125 hover:!bg-indigo-700"
       >
         <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-bold leading-none text-white">

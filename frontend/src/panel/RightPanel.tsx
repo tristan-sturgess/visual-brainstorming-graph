@@ -13,7 +13,7 @@ export function RightPanel({ graph }: { graph: Graph }) {
       <div className="flex h-full flex-col items-center justify-center gap-1 p-6 text-center text-sm text-gray-400">
         <p>Select a concept or image node to see its details here.</p>
         <p className="text-xs">
-          Drag the + onto empty canvas to branch, or onto a concept to add it as a parent.
+          Drag the + onto empty canvas to branch, or onto a draft concept to add it as a parent.
         </p>
       </div>
     );

@@ -188,7 +188,7 @@ The demo scenario is concept art for a personal website.
 1. Create a root concept. In chat: "Hero illustration for my personal site. Isometric desk scene, warm palette, a bit playful." The LLM writes the concept. Generate.
 2. Four candidates appear. On one, add feedback "Love the palette. The sleeping cat is perfect." and draw a like rectangle over the cat. On another, add "Great composition, but the background is too busy." and draw a dislike rectangle over the busy wall.
 3. Drag the "+" under the first image onto empty canvas. The new draft is pre-filled. In chat: "Same scene, simpler background, keep the cat exactly as it is." Generate. The results keep the cat and palette and swap the wall for a plain one.
-4. Live: drag the "+" under the best step 3 result onto empty canvas to branch, then drag the "+" under the second image onto the top of that draft to add it as a second parent. In chat: "Bring in this one's composition." Generate.
+4. Live: drag the "+" under the best step 3 result onto empty canvas to branch, then drag the "+" under the second image onto that draft (it highlights when you can drop) to add it as a second parent. In chat: "Bring in this one's composition." Generate.
 5. Optionally drop a screenshot of the current website onto the canvas, connect it, and say "match these brand colors."
 
 Each Generate takes roughly a minute for four images, so steps 1 through 3 are built before the event and only step 4 runs live. Persistence makes this free. See [demo-runbook.md](demo-runbook.md) for the day-of checklist.
