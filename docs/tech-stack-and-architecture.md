@@ -49,7 +49,7 @@ The **OpenAI image API** through the official Python SDK, behind one small modul
 
 * **React** + **TypeScript** + **Vite**
 * **@xyflow/react** (React Flow) for the canvas
-* **Zustand** for editor state (selection, chat draft, annotation drawing mode)
+* **Zustand** for editor state (selection, chat draft, running generations)
 * **TanStack Query** for server state, with `refetchInterval` polling while a generation is running
 * **Tailwind CSS** and **shadcn/ui** for standard controls
 * Hand-written TypeScript types mirroring the Pydantic schemas. No OpenAPI codegen.
@@ -58,7 +58,7 @@ React Flow is the most important frontend choice. It provides custom nodes, drag
 
 ### Regional annotations
 
-Percentage-positioned overlay divs inside the image node. Three rectangle kinds (like / dislike / note) with normalized coordinates. While drawing, node drag and canvas pan are disabled (React Flow's `nodrag` / `nopan` classes); outside annotation mode the rectangles are purely visual so the node still drags normally. See [regional-annotations.md](regional-annotations.md). No react-konva.
+Drawn on the large image in the right-hand image panel, not on the canvas node. Three rectangle kinds (like / dislike / note) with normalized coordinates, rendered as percentage-positioned overlay divs on both the panel image and the canvas node. On the canvas the rectangles are purely visual (pointer-events: none) so the node always drags normally. See [regional-annotations.md](regional-annotations.md). No react-konva.
 
 ### Uploads and drag-and-drop
 

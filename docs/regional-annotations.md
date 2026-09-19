@@ -16,10 +16,10 @@ Examples: a like box over a character ("this character design"), a dislike box o
 
 ## Interaction
 
-* Hover an image node to reveal an annotation toolbar with the three kinds. Picking a kind puts the node into annotation mode for that kind; clicking the active kind again, or pressing Escape, exits it.
-* While in annotation mode, drag a rectangle on the image. Canvas panning and node dragging are suppressed for the duration of the drag. Rectangles smaller than 2% of the image in either dimension are discarded.
+* Select an image node; the right-hand image panel shows the image large with Like / Dislike / Note buttons directly beneath it. Picking a kind arms the panel image for drawing; clicking the active kind again, pressing Escape, or selecting a different node exits drawing mode.
+* While a kind is armed, drag a rectangle on the panel image. Rectangles smaller than 2% of the image in either dimension are discarded.
 * On release, **like** and **dislike** rectangles are saved immediately with an empty note. A **note** rectangle instead opens a small inline text input anchored at the rectangle (autofocus; Enter submits, Escape cancels); an empty note is not submitted, since the backend rejects it.
-* Rectangles render as percentage-positioned, colored overlays on the image node, tinted by kind (green / red / slate). On the canvas they are purely visual and never intercept pointer events, so the node can always be dragged, even from directly on top of a rectangle. Deleting an annotation (and seeing its note) happens from the image panel on the right, which lists each annotation with a Delete button.
+* Rectangles render as percentage-positioned, colored overlays on both the panel image and the canvas node, tinted by kind (green / red / slate). On the canvas they are purely visual and never intercept pointer events, so the node can always be dragged, even from directly on top of a rectangle. The panel also lists each annotation with its note and a Delete button.
 
 Rectangles only. No freehand, polygons, or masks.
 
