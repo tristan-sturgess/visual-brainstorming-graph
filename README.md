@@ -33,6 +33,7 @@ Open http://localhost:5173. The SQLite database and generated images live under 
 ## Docs
 
 - [Concept](docs/concept.md): product concept, workflow, scope, and the demo script
+- [Demo Runbook](docs/demo-runbook.md): day-of checklist, live sequence, and fallbacks
 - [Core Concepts & Mental Model](docs/core-concepts-and-mental-model.md): the short version to keep in your head
 - [Regional Annotations](docs/regional-annotations.md): the three rectangle kinds and how they reach the models
 - [Tech Stack & Architecture](docs/tech-stack-and-architecture.md): stack, data model, configuration
